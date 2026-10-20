@@ -2,6 +2,6 @@
 
 ## clang-tidy findings
 
-[log](clang-tidy.log)
+[log](./clang-tidy.log)
 
 

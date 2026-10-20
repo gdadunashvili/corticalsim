@@ -1,6 +1,10 @@
 name: documentation
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -9,6 +13,10 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
+      # - name: Wait for clang-tidy to finish
+      #   uses: ArcticLampyrid/action-wait-for-workflow@v1
+      #   with:
+      #     workflow: clang-tidy.yml
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
       - name: Install dependencies
@@ -21,6 +29,12 @@ jobs:
       - name: Sphinx build
         run: |
           sphinx-build doc doc/build
+      - name: Download the latest clang-tidy findings artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          run_id=$(gh run list --workflow clang-tidy --limit 1 --json databaseId --jq '.[0].databaseId')
+          gh run download $run_id --dir doc/ --name clang-tidy-log
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}

@@ -10,13 +10,13 @@ permissions:
   contents: write
 
 jobs:
-  docs:
+  documentation:
     runs-on: ubuntu-latest
     steps:
-      # - name: Wait for clang-tidy to finish
-      #   uses: ArcticLampyrid/action-wait-for-workflow@v1
-      #   with:
-      #     workflow: clang-tidy.yml
+      - name: Wait for clang-tidy to finish
+        uses: ArcticLampyrid/action-wait-for-workflow@v1
+        with:
+          workflow: clang-tidy.yml
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
       - name: Install dependencies
@@ -33,11 +33,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          run_id=$(gh run list --workflow clang-tidy --limit 1 --json databaseId --jq '.[0].databaseId')
-          gh run download $run_id --dir doc/ --name clang-tidy-log
+          run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=clang-tidy-log" --jq '[.artifacts[] | select(.expired == false)] | .[0].workflow_run.id')
+          gh run download "$run_id" --dir doc/ --name clang-tidy-log
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event_name != 'pull_request' }}
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}

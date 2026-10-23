@@ -21,13 +21,17 @@ jobs:
       - uses: actions/setup-python@v5
       - name: Install dependencies
         run: |
-          sudo apt install doxygen
+          sudo apt-get update
+          sudo apt-get install -y doxygen
+          python -m venv .venv
+          source .venv/bin/activate
           pip install -r doc/requirements.txt
       - name: Doxygen generate xml
         run: |
           doxygen doc/Doxyfile
       - name: Sphinx build
         run: |
+          source .venv/bin/activate
           sphinx-build doc doc/build
       - name: Download the latest clang-tidy findings artifact
         env:

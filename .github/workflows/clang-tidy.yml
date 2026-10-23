@@ -40,10 +40,13 @@ jobs:
         run: |
           meson setup build/release . --buildtype release --reconfigure
           ninja -C build/release tidy
+          echo $(date) >> clang-tidy.log
+          echo "git-sha: ${{ github.sha }}" >> clang-tidy.log
+
       - name: Upload clang-tidy artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: clang-tidy-${{ github.sha }}.log
+          name: clang-tidy-log
           path: clang-tidy.log
           retention-days: 90
           if-no-files-found: error

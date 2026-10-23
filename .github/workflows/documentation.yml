@@ -1,86 +1,22 @@
-name: Docs
-
-on:
-  gorkflow_run:
-    workflows: [Benchmarks]
-    types: [completed]
-    branches: [main]
-  pull_request:
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
-permissions:
-  contents: read
-  actions: read
-  pages: write
-  id-token: write
-
-jobs:
-  build-docs:
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-      - name: Download latest clang-tidy findings artifact
-        continue-on-error: true # e.g. artifact expired
-        uses: actions/download-artifact@v8
-        with:
-          name: clang-tidy-${{ github.event.workflow_run.head_sha }}.log
-          path: doc/clang-tidy.log
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ github.token }}
-
-      - name: Generate dashboard page
-        env:
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
-          SHA: ${{ github.event.workflow_run.head_sha }}
-          CREATED: ${{ github.event.workflow_run.created_at }}
-        run: |
-          python3 scripts/generate_dashboard_page.py \
-            --log bench-latest/clang-tidy.log \
-            --out doc/pages/dashboard.md
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r doc/requirements.txt
-      - name: Doxygen generate xml
-        run: |
-          doxygen doc/Doxyfile
-      - name: Sphinx build
-        run: |
-          source .venv/bin/activate
-          sphinx-build doc doc/build
-      - name: Deploy to GitHub Pages when merging to main
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        with:
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: doc/build/
-          force_orphan: true
-
-
 name: documentation
 
-on: [pull_request, workflow_dispatch]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  docs:
+  documentation:
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for clang-tidy to finish
+        uses: ArcticLampyrid/action-wait-for-workflow@v1
+        with:
+          workflow: clang-tidy.yml
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
       - name: Install dependencies
@@ -97,7 +33,13 @@ jobs:
         run: |
           source .venv/bin/activate
           sphinx-build doc doc/build
-      - name: Deploy to GitHub Pages when merging to main
+      - name: Download the latest clang-tidy findings artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=clang-tidy-log" --jq '[.artifacts[] | select(.expired == false)] | .[0].workflow_run.id')
+          gh run download "$run_id" --dir doc/ --name clang-tidy-log
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         with:

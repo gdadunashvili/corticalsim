@@ -1,0 +1,32 @@
+name: formatters
+
+on: [pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+
+jobs:
+  clang-tidy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+      - name: Set up Python
+        uses: actions/setup-python@v5
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0.2.0
+        with:
+          llvm-version: 22
+      - name: Set up Meson Ninja and Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build gcc cmake
+
+      - name: Run clang-tidy target
+        run: |
+          meson setup build/release . --buildtype release --reconfigure
+# gToDo: fail the run if there is anything to format
+          ninja -C build/release format
+

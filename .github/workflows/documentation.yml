@@ -28,15 +28,17 @@ jobs:
       - name: Configure meson build
         run: |
           meson setup build/debug . --buildtype debug
+      - name: Sphinx build
+        run: |
+          ninja -C build/debug sphinx-build
       - name: Download the latest clang-tidy findings artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=clang-tidy-log" --jq '[.artifacts[] | select(.expired == false)] | .[0].workflow_run.id')
-          gh run download "$run_id" --dir build/debug --name clang-tidy-log
-      - name: Sphinx build
-        run: |
-          ninja -C build/debug sphinx-build
+          gh run download "$run_id" --dir build/debug/doc_build --name clang-tidy-log
+          run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=coveragereport" --jq '[.artifacts[] | select(.expired == false)] | .[0].workflow_run.id')
+          gh run download "$run_id" --dir build/debug/doc_build/coveragereport --name coveragereport
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name != 'pull_request' }}

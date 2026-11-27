@@ -40,8 +40,8 @@ jobs:
         run: |
           meson setup build/debug . --buildtype debug --reconfigure
           meson compile -C build/debug tidy
-          echo $(date) >> build/debug/clang-tidy.log
-          echo "git-sha: ${{ github.sha }}" >> build/debug/clang-tidy.log
+          # echo $(date) >> build/debug/clang-tidy.log
+          # echo "git-sha: ${{ github.sha }}" >> build/debug/clang-tidy.log
 
       - name: Upload clang-tidy artifacts
         uses: actions/upload-artifact@v7

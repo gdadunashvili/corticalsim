@@ -18,6 +18,11 @@ jobs:
         uses: ArcticLampyrid/action-wait-for-workflow@v1
         with:
           workflow: clang-tidy.yml
+      - name: Wait for coverage to finish
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: ArcticLampyrid/action-wait-for-workflow@v1
+        with:
+          workflow: coverage.yml
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
       - name: Install dependencies
